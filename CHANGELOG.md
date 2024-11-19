@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file. See [standard-version](https://github.com/conventional-changelog/standard-version) for commit guidelines.
 
+### 0.1.1 (2024-11-19)
+
+
+### Features
+
+* initial ([67c6f6f](https://github.com/neil-jay/testing-workflow/commit/67c6f6f9e91443ab6aaad46a1a6421dd963001b3))
+
 ### [0.1.7](https://github.com/neil-jay/test-work/compare/v0.1.6...v0.1.7) (2024-11-19)
 
 
