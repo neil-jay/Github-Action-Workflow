@@ -9,6 +9,8 @@
     {"type": "test", "section": "Tests"},
     {"type": "build", "section": "Build System"},
     {"type": "ci", "section": "CI"},
+    {"type": "breaking", "section": "Breaking Changes"},
+    {"type": "revert", "section": "Reverts"},
     {"type": "chore", "hidden": true}
   ],
   "commitUrlFormat": "https://github.com/neil-jay/testing-workflow/commit/{{hash}}",

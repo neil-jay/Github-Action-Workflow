@@ -2,7 +2,8 @@
   "name": "workflow-tester",
   "version": "0.1.1",
   "scripts": {
-    "release": "standard-version"
+    "release": "standard-version",
+    "postversion": "git push --follow-tags origin main"
   },
   "devDependencies": {
     "conventional-changelog-cli": "^5.0.0",
