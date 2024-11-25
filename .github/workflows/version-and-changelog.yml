@@ -31,76 +31,36 @@ jobs:
           git config user.name "${GITHUB_ACTOR}"
           git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
 
-      - name: Fetch latest changes
-        run: |
-          git fetch origin ${{ github.ref }}
-          git reset --hard origin/${{ github.ref_name }}
-
-      - name: Determine current version
-        id: current_version
-        run: |
-          current_version=$(node -p "require('./package.json').version || '0.1.0'")
-          echo "Current version: $current_version"
-          echo "current_version=$current_version" >> $GITHUB_OUTPUT
-
-      - name: Determine version bump
-        id: bump
-        run: |
-          if git log -1 --pretty=%B | grep -q "BREAKING CHANGE"; then
-            echo "bump=major" >> $GITHUB_OUTPUT
-          elif git log -1 --pretty=%B | grep -q "^feat"; then
-            echo "bump=minor" >> $GITHUB_OUTPUT
-          else
-            echo "bump=patch" >> $GITHUB_OUTPUT
-          fi
-
       - name: Generate version and changelog
         id: release
         run: |
-          if [ -z "${{ steps.current_version.outputs.current_version }}" ]; then
-            echo "No version found in package.json, initializing to 0.1.0"
-            npm version 0.1.0 --no-git-tag-version
-          fi
-          npx standard-version --release-as ${{ steps.bump.outputs.bump }} --skip.tag true
+          # Get the latest version from package.json
+          current_version=$(node -p "require('./package.json').version || '0.1.0'")
+          echo "Current version: $current_version"
+          
+          # Run standard-version to update version and generate changelog
+          # Use --skip.bump and --skip.commit to prevent automatic version bump and commit
+          npx standard-version --skip.bump --skip.commit
+          
+          # Manually bump the version
+          npm version patch -m "chore(release): %s"
+          
+          # Get the new version
           new_version=$(node -p "require('./package.json').version")
           echo "new_version=$new_version" >> $GITHUB_OUTPUT
-
-      - name: Extract changelog for release
-        id: changelog
-        run: |
-          CHANGELOG_CONTENT=$(awk '/^## \[/ {if (p) {exit}; if (!p) {p=1; next}} p' CHANGELOG.md)
-          CHANGELOG_CONTENT="${CHANGELOG_CONTENT//'%'/'%25'}"
-          CHANGELOG_CONTENT="${CHANGELOG_CONTENT//$'\n'/'%0A'}"
-          CHANGELOG_CONTENT="${CHANGELOG_CONTENT//$'\r'/'%0D'}"
-          echo "content<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG_CONTENT" >> $GITHUB_OUTPUT
+          
+          # Store the entire changelog content for the current version
+          changelog_content=$(awk '/^### \[[0-9]+\.[0-9]+\.[0-9]+\]/{p=NR+1}(NR>=p){print}' CHANGELOG.md | sed '/^### \[[0-9]+\.[0-9]+\.[0-9]+\]/q' | head -n -1)
+          echo "changelog_content<<EOF" >> $GITHUB_OUTPUT
+          echo "$changelog_content" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-      - name: Create Git tag
-        run: |
-          git tag -a "v${{ steps.release.outputs.new_version }}" -m "Release v${{ steps.release.outputs.new_version }}"
-
-      - name: Commit changes
-        id: commit
-        run: |
-          git add .
-          git commit -m "chore(release): ${{ steps.release.outputs.new_version }}" || echo "No changes to commit"
-          echo "committed=$?" >> $GITHUB_OUTPUT
-
-      - name: Push changes
-        if: steps.commit.outputs.committed == '0'
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          git push --follow-tags origin ${{ github.ref }} || (git pull --rebase origin ${{ github.ref }} && git push --follow-tags origin ${{ github.ref }})
-
       - name: Create GitHub Release
-        if: steps.commit.outputs.committed == '0'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          DECODED_CHANGELOG=$(echo "${{ steps.changelog.outputs.content }}" | sed 's/%0A/\n/g; s/%25/%/g')
+          changelog_content="${{ steps.release.outputs.changelog_content }}"
           gh release create "v${{ steps.release.outputs.new_version }}" \
             --title "Release v${{ steps.release.outputs.new_version }}" \
-            --notes "$DECODED_CHANGELOG" \
+            --notes "$changelog_content" \
             --target ${{ github.ref_name }}
