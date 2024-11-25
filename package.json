@@ -1,6 +1,6 @@
 {
   "name": "workflow-tester",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "scripts": {
     "release": "standard-version",
     "postversion": "git push --follow-tags origin main"
